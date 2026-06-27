@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Commit {
+  hash           String       @id
+  repo           String
+  branch         String?
+  date           DateTime
+  message        String
+  type           String?      // e.g., feat, fix, perf, refactor, style, docs
+  author         String
+  filesChanged   Int          @default(0)
+  prId           String?
+  
+  // Task specific fields for Quick Add
+  module         String?
+  priority       String?      // Low, Medium, High, Critical
+  estimatedHours Float?
+  actualHours    Float?
+  status         String?      // To Do, In Progress, Done
+  evidenceUrl    String?      // Image URL for proof of work
+  
+  releaseId      String?
+  release        Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+
+  impacts        Impact[]
+  deployments    Deployment[]
+}
+
+model Release {
+  id              String   @id @default(cuid())
+  name            String
+  date            DateTime @default(now())
+  
+  commits         Commit[]
+}
+
+model Impact {
+  id          String   @id @default(cuid())
+  category    String   // e.g., Monthly Release, Production Fix, UX, Performance, etc.
+  notes       String?
+  createdAt   DateTime @default(now())
+  
+  commitHash  String
+  commit      Commit   @relation(fields: [commitHash], references: [hash], onDelete: Cascade)
+}
+
+model Deployment {
+  id          String   @id @default(cuid())
+  environment String   @default("production") // "dev" or "production"
+  deployedAt  DateTime @default(now())
+  
+  commitHash  String
+  commit      Commit   @relation(fields: [commitHash], references: [hash], onDelete: Cascade)
+}
+
+
