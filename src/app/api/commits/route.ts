@@ -34,7 +34,7 @@ export async function PUT(req: Request) {
 
     const updated = await prisma.commit.update({
       where: { hash },
-      data: { type, module, priority, estimatedHours, actualHours, status, evidenceUrl, releaseId },
+      data: { type, module, priority, estimatedHours, actualHours, status, evidenceUrl, releaseId: releaseId || null },
     });
 
     return NextResponse.json(updated);
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
         actualHours,
         status: status || "To Do",
         evidenceUrl,
-        releaseId,
+        releaseId: releaseId || null,
       },
     });
 

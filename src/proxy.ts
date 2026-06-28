@@ -1,10 +1,14 @@
 import { withAuth } from "next-auth/middleware";
 
-export default withAuth({});
+export default withAuth({
+  pages: {
+    signIn: "/login",
+  },
+});
 
 export const config = {
   matcher: [
-    "/dashboard/:path*", 
+    "/dashboard/:path*",
     "/salary-review/:path*",
     "/work-entries/:path*",
     "/releases/:path*",
@@ -12,7 +16,7 @@ export const config = {
     "/api/commits/:path*",
     "/api/deployments/:path*",
     "/api/impact/:path*",
-    "/api/upload/:path*",
-    "/api/bitbucket/sync/:path*"
+    // "/api/upload/:path*",
+    "/api/bitbucket/sync/:path*",
   ],
 };

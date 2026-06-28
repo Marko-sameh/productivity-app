@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, BarChart3, Settings, LayoutDashboard, Trophy, Package } from "lucide-react";
+import { Briefcase, BarChart3, Settings, LayoutDashboard, Trophy, Package, LogOut, User } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  if (pathname === "/login") return null;
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -29,17 +32,44 @@ export function Sidebar() {
             <Link 
               key={link.href}
               href={link.href} 
-              className={`flex items-center rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 
+              className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-300 relative group overflow-hidden
                 ${isActive 
-                  ? "bg-accent/20 text-accent shadow-[0_0_15px_rgba(59,130,246,0.15)]" 
-                  : "text-muted-foreground hover:bg-accent/10 hover:text-accent hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                  ? "bg-accent/15 text-accent" 
+                  : "text-muted-foreground hover:bg-accent/5 hover:text-accent"
                 }`}
             >
-              <Icon className="mr-3 h-4 w-4" /> {link.label}
+              {/* Active Glow Bar */}
+              {isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+              )}
+              {/* Hover Glow Bar */}
+              {!isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent/50 rounded-r-full -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+              )}
+              
+              <Icon className={`mr-3 h-4 w-4 ${isActive ? "text-accent drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" : ""}`} /> 
+              {link.label}
             </Link>
           );
         })}
       </nav>
+      <div className="p-4 border-t border-border/40 bg-card/30">
+        <div className="flex items-center gap-3 mb-4 px-2">
+          <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-accent shadow-inner">
+            <User className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-primary-foreground leading-none mb-1">Developer</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Pro Plan</span>
+          </div>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/5 border border-destructive/10 px-3 py-2 text-sm font-medium text-destructive/80 hover:bg-destructive hover:text-destructive-foreground hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all duration-300"
+        >
+          <LogOut className="h-4 w-4" /> Logout
+        </button>
+      </div>
     </div>
   );
 }

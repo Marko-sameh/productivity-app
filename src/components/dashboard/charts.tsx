@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell,
   LineChart, Line
 } from "recharts";
-import { format, subMonths, startOfMonth, isAfter } from "date-fns";
+import { format, subMonths, startOfMonth, isAfter, isBefore, differenceInMonths } from "date-fns";
 
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#eab308'];
 
@@ -15,17 +15,22 @@ import type { Commit, Impact, Deployment } from "@/types";
 export function DashboardCharts({ data }: { data: Commit[] }) {
   const chartData = useMemo(() => {
     const now = new Date();
-    const sixMonthsAgo = startOfMonth(subMonths(now, 5));
+    const oldestCommitDate = data.reduce((oldest: Date, c: Commit) => {
+      const d = new Date(c.date);
+      return d < oldest ? d : oldest;
+    }, now);
+    const monthsSpan = Math.max(1, differenceInMonths(now, oldestCommitDate) + 1);
+    const startDate = startOfMonth(oldestCommitDate);
     
     const monthlyData = new Map();
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthsSpan; i++) {
       const d = subMonths(now, i);
       monthlyData.set(format(d, "MMM yyyy"), { name: format(d, "MMM yyyy"), feat: 0, fix: 0, other: 0 });
     }
 
     data.forEach(c => {
       const date = new Date(c.date);
-      if (isAfter(date, sixMonthsAgo)) {
+      if (!isBefore(date, startDate)) {
         const monthKey = format(date, "MMM yyyy");
         if (monthlyData.has(monthKey)) {
           const m = monthlyData.get(monthKey);
@@ -107,10 +112,15 @@ export function ImpactPieChart({ data }: { data: Commit[] }) {
 export function DeploymentHistoryChart({ data }: { data: Commit[] }) {
   const chartData = useMemo(() => {
     const now = new Date();
-    const sixMonthsAgo = startOfMonth(subMonths(now, 5));
+    const oldestCommitDate = data.reduce((oldest: Date, c: Commit) => {
+      const d = new Date(c.date);
+      return d < oldest ? d : oldest;
+    }, now);
+    const monthsSpan = Math.max(1, differenceInMonths(now, oldestCommitDate) + 1);
+    const startDate = startOfMonth(oldestCommitDate);
     
     const monthlyData = new Map();
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthsSpan; i++) {
       const d = subMonths(now, i);
       monthlyData.set(format(d, "MMM yyyy"), { name: format(d, "MMM yyyy"), dev: 0, prod: 0 });
     }
@@ -118,7 +128,7 @@ export function DeploymentHistoryChart({ data }: { data: Commit[] }) {
     data.forEach(c => {
       c.deployments?.forEach((d: Deployment) => {
         const date = new Date(d.deployedAt || c.date);
-        if (isAfter(date, sixMonthsAgo)) {
+        if (!isBefore(date, startDate)) {
           const monthKey = format(date, "MMM yyyy");
           if (monthlyData.has(monthKey)) {
             const m = monthlyData.get(monthKey);

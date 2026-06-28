@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Rocket, Calendar, Tag, PlusCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import type { Release } from "@/types";
 
 export default function ReleasesPage() {
@@ -57,7 +58,7 @@ export default function ReleasesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10 max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-primary-foreground">Releases</h2>
@@ -71,51 +72,66 @@ export default function ReleasesPage() {
         </Button>
       </div>
 
-      <div className="border border-border/40 rounded-xl bg-card shadow-lg shadow-black/20 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Release Name</TableHead>
-              <TableHead>Release Date</TableHead>
-              <TableHead>Attached Commits</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Loading releases...</TableCell>
-              </TableRow>
-            )}
-            {!isLoading && releases?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No releases found. Click "+ New Release".</TableCell>
-              </TableRow>
-            )}
-            {!isLoading && releases?.map((release: any) => (
-              <TableRow key={release.id}>
-                <TableCell className="font-medium text-primary-foreground">{release.name}</TableCell>
-                <TableCell>{new Date(release.date).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <span className="bg-accent/20 text-accent border border-accent/40 px-2 py-0.5 rounded-full text-xs font-semibold">
-                    {release._count?.commits || 0} tasks
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64 text-muted-foreground">Loading releases...</div>
+      ) : releases.length === 0 ? (
+        <div className="border border-border/40 rounded-2xl bg-card/60 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col items-center justify-center py-24 px-6 text-center">
+          <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mb-4">
+            <Rocket className="h-10 w-10 text-accent opacity-80" />
+          </div>
+          <h3 className="text-xl font-bold text-primary-foreground mb-2">No formal releases yet</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-6">
+            Group your completed work entries into formal releases to track your monthly cadence and overall impact.
+          </p>
+          <Button 
+            onClick={() => setShowAdd(true)}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            Create Your First Release
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {releases.map((release: any) => (
+            <Card key={release.id} className="border-border/40 bg-card/60 backdrop-blur-xl shadow-xl shadow-black/20 overflow-hidden relative group hover:-translate-y-1 hover:shadow-accent/10 transition-all duration-300">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-bl-full blur-3xl group-hover:bg-accent/20 transition-all pointer-events-none" />
+              <CardHeader className="border-b border-border/30 pb-4 relative z-10">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1.5">
+                    <CardTitle className="text-xl font-bold text-primary-foreground flex items-center gap-2">
+                      <Rocket className="h-5 w-5 text-accent" />
+                      {release.name}
+                    </CardTitle>
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {new Date(release.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                  </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors h-8 w-8 opacity-0 group-hover:opacity-100"
                     onClick={() => setDeleteId(release.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6 pb-2 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-background rounded-lg border border-border/50">
+                    <Tag className="h-5 w-5 text-accent/70" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Tasks attached</p>
+                    <p className="text-2xl font-bold text-primary-foreground">{release._count?.commits || 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Add Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>

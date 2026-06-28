@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { classifyCommit } from "@/lib/classification";
+import { Sparkles, ChevronDown, ChevronUp, Briefcase, FileImage, LayoutGrid, Clock, Tag } from "lucide-react";
 
 export function QuickAddDialog({ open, onOpenChange, initialData }: { open: boolean, onOpenChange: (open: boolean) => void, initialData?: any }) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [autoTypeSet, setAutoTypeSet] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -67,9 +69,9 @@ export function QuickAddDialog({ open, onOpenChange, initialData }: { open: bool
       let evidenceUrl = null;
 
       // 0. Upload image if exists
-      if (evidenceFile) {
+      if (taskData.evidenceFile) {
         const formData = new FormData();
-        formData.append("file", evidenceFile);
+        formData.append("file", taskData.evidenceFile);
         const uploadRes = await fetch("/api/upload", {
           method: "POST",
           body: formData,
@@ -77,6 +79,8 @@ export function QuickAddDialog({ open, onOpenChange, initialData }: { open: bool
         if (uploadRes.ok) {
           const { url } = await uploadRes.json();
           evidenceUrl = url;
+        } else {
+          throw new Error("Image upload failed. Please try a smaller image.");
         }
       }
 
@@ -138,7 +142,7 @@ export function QuickAddDialog({ open, onOpenChange, initialData }: { open: bool
             ...(taskData.deployedDev ? [{ environment: "dev" }] : []),
             ...(taskData.deployedProd ? [{ environment: "production" }] : []),
           ],
-          evidenceUrl: evidenceFile ? URL.createObjectURL(evidenceFile) : initialData?.evidenceUrl,
+          evidenceUrl: taskData.evidenceFile ? URL.createObjectURL(taskData.evidenceFile) : initialData?.evidenceUrl,
         };
 
         if (isEdit) {
@@ -179,26 +183,37 @@ export function QuickAddDialog({ open, onOpenChange, initialData }: { open: bool
       notes,
       deployedDev,
       deployedProd,
-      releaseId: releaseId === "none" ? null : releaseId
+      releaseId: (releaseId === "none" || releaseId === "") ? null : releaseId,
+      evidenceFile,
     });
     setLoading(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Quick Add Task</DialogTitle>
-          <DialogDescription>Takes less than 20 seconds. Focus on the business value.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-card border-border/50 shadow-2xl">
+        
+        {/* Header */}
+        <div className="bg-accent/5 border-b border-border/40 p-6 flex flex-col gap-1">
+          <DialogTitle className="text-2xl font-bold text-primary-foreground flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            Log Work Entry
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground font-medium">
+            Takes less than 20 seconds. Focus on the business value.
+          </DialogDescription>
+        </div>
 
-        <div className="grid gap-4 py-2">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+          
+          {/* PRIMARY FIELDS */}
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Task Title</Label>
+              <Label className="text-sm font-semibold text-primary-foreground">What did you accomplish?</Label>
               <Input 
-                placeholder="e.g. Implement login" 
+                placeholder="e.g. Implemented secure login flow" 
                 value={title} 
+                className="text-lg py-6 bg-background border-accent/20 focus:border-accent shadow-[0_0_10px_rgba(59,130,246,0.05)] transition-all"
                 onChange={(e) => {
                   const newTitle = e.target.value;
                   setTitle(newTitle);
@@ -212,109 +227,149 @@ export function QuickAddDialog({ open, onOpenChange, initialData }: { open: bool
                 }} 
               />
             </div>
-            <div className="space-y-2">
-              <Label>Module</Label>
-              <Input placeholder="e.g. Auth, Core" value={module} onChange={(e) => setModule(e.target.value)} />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Type</Label>
-              <Select onValueChange={(val) => setType(val || "")} value={type}>
-                <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+              <Label className="text-sm font-semibold text-primary-foreground flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-accent/70" />
+                Primary Business Outcome
+              </Label>
+              <Select onValueChange={(val) => setImpact(val || "")} value={impact}>
+                <SelectTrigger className="py-6 text-md bg-background border-border/50"><SelectValue placeholder="Select the business value..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="feat">Feature</SelectItem>
-                  <SelectItem value="fix">Bug Fix</SelectItem>
-                  <SelectItem value="perf">Performance</SelectItem>
-                  <SelectItem value="refactor">Refactoring</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select onValueChange={(val) => setPriority(val || "Medium")} value={priority}>
-                <SelectTrigger><SelectValue placeholder="Priority" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Critical">Critical</SelectItem>
+                  <SelectItem value="🚀 Enabled monthly release">🚀 Enabled monthly release</SelectItem>
+                  <SelectItem value="🐞 Prevented production issue">🐞 Prevented production issue</SelectItem>
+                  <SelectItem value="⚡ Improved performance">⚡ Improved performance</SelectItem>
+                  <SelectItem value="😊 Improved user experience">😊 Improved user experience</SelectItem>
+                  <SelectItem value="🔧 Reduced future development effort">🔧 Reduced future development effort</SelectItem>
+                  <SelectItem value="💰 Supported business feature">💰 Supported business feature</SelectItem>
+                  <SelectItem value="🔒 Increased reliability">🔒 Increased reliability</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Estimated Hours</Label>
-              <Input type="number" placeholder="2.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} />
+          {/* ADVANCED TOGGLE */}
+          <div className="pt-2">
+            <button 
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center text-sm font-medium text-muted-foreground hover:text-accent transition-colors w-full gap-2"
+            >
+              <div className="flex-1 h-px bg-border/40" />
+              <span className="flex items-center gap-1">
+                {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {showAdvanced ? "Hide Details" : "Add Details (Optional)"}
+              </span>
+              <div className="flex-1 h-px bg-border/40" />
+            </button>
+          </div>
+
+          {/* ADVANCED FIELDS */}
+          {showAdvanced && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-200 pb-2">
+              
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><Tag className="h-3.5 w-3.5" /> Type</Label>
+                  <Select onValueChange={(val) => setType(val || "")} value={type}>
+                    <SelectTrigger className="bg-background"><SelectValue placeholder="Type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="feat">Feature</SelectItem>
+                      <SelectItem value="fix">Bug Fix</SelectItem>
+                      <SelectItem value="perf">Performance</SelectItem>
+                      <SelectItem value="refactor">Refactoring</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Module</Label>
+                  <Input placeholder="e.g. Auth, Core" value={module} onChange={(e) => setModule(e.target.value)} className="bg-background" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Est. Hours</Label>
+                  <Input type="number" placeholder="2.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} className="bg-background" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Act. Hours</Label>
+                  <Input type="number" placeholder="3.0" value={actualHours} onChange={(e) => setActualHours(e.target.value)} className="bg-background" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Priority</Label>
+                  <Select onValueChange={(val) => setPriority(val || "Medium")} value={priority}>
+                    <SelectTrigger className="bg-background"><SelectValue placeholder="Priority" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Low">Low</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Release</Label>
+                  <Select onValueChange={(val) => setReleaseId(val || "")} value={releaseId}>
+                    <SelectTrigger className="bg-background"><SelectValue placeholder="Assign Release" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- None --</SelectItem>
+                      {releases?.map((r: any) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button 
+                  type="button"
+                  onClick={() => setDeployedDev(!deployedDev)}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium border transition-colors ${deployedDev ? "bg-accent/20 border-accent/40 text-accent" : "bg-background border-border/50 text-muted-foreground hover:border-accent/30"}`}
+                >
+                  {deployedDev ? "✓ Deployed Dev" : "+ Deploy Dev"}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setDeployedProd(!deployedProd)}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium border transition-colors ${deployedProd ? "bg-green-500/20 border-green-500/40 text-green-500" : "bg-background border-border/50 text-muted-foreground hover:border-green-500/30"}`}
+                >
+                  {deployedProd ? "✓ Deployed Prod" : "+ Deploy Prod"}
+                </button>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><FileImage className="h-3.5 w-3.5" /> Evidence Screenshot</Label>
+                <Input 
+                  type="file" 
+                  accept="image/*" 
+                  className="bg-background cursor-pointer file:text-accent file:bg-accent/10 file:rounded-md file:border-0 file:px-3 file:py-1 file:mr-4 file:text-xs file:font-semibold"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setEvidenceFile(e.target.files[0]);
+                    }
+                  }} 
+                />
+              </div>
+
             </div>
-            <div className="space-y-2">
-              <Label>Actual Hours</Label>
-              <Input type="number" placeholder="3.0" value={actualHours} onChange={(e) => setActualHours(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>What business outcome did this task support?</Label>
-            <Select onValueChange={(val) => setImpact(val || "")} value={impact}>
-              <SelectTrigger><SelectValue placeholder="Select primary outcome..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="🚀 Enabled monthly release">🚀 Enabled monthly release</SelectItem>
-                <SelectItem value="🐞 Prevented production issue">🐞 Prevented production issue</SelectItem>
-                <SelectItem value="⚡ Improved performance">⚡ Improved performance</SelectItem>
-                <SelectItem value="😊 Improved user experience">😊 Improved user experience</SelectItem>
-                <SelectItem value="🔧 Reduced future development effort">🔧 Reduced future development effort</SelectItem>
-                <SelectItem value="💰 Supported business feature">💰 Supported business feature</SelectItem>
-                <SelectItem value="🔒 Increased reliability">🔒 Increased reliability</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Assign to Release (Optional)</Label>
-            <Select onValueChange={(val) => setReleaseId(val || "")} value={releaseId}>
-              <SelectTrigger><SelectValue placeholder="Select a release..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">-- None --</SelectItem>
-                {releases?.map((r: any) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex gap-4 pt-2">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={deployedDev} onChange={(e) => setDeployedDev(e.target.checked)} className="rounded" />
-              Deployed to Dev
-            </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={deployedProd} onChange={(e) => setDeployedProd(e.target.checked)} className="rounded" />
-              Deployed to Prod
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Evidence Image (Optional)</Label>
-            <Input 
-              type="file" 
-              accept="image/*" 
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  setEvidenceFile(e.target.files[0]);
-                }
-              }} 
-            />
-          </div>
+          )}
 
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!title || loading}>{loading ? "Saving..." : "Save Task"}</Button>
-        </DialogFooter>
+        <div className="bg-background border-t border-border/40 p-4 flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!title || !impact || loading}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all font-semibold px-6"
+          >
+            {loading ? "Saving..." : "Log Entry"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
