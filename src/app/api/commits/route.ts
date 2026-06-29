@@ -5,13 +5,14 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
   const unclassified = url.searchParams.get("unclassified") === "true";
 
   const commits = await prisma.commit.findMany({
-    where: unclassified ? { type: null } : {},
+    where: unclassified ? { impacts: { none: {} } } : {},
     take: 500,
     orderBy: { date: "desc" },
     include: { impacts: true, deployments: true },
@@ -22,11 +23,22 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const data = await req.json();
-    const { hash, type, module, priority, estimatedHours, actualHours, status, evidenceUrl, releaseId } = data;
+    const {
+      hash,
+      type,
+      module,
+      priority,
+      estimatedHours,
+      actualHours,
+      status,
+      evidenceUrl,
+      releaseId,
+    } = data;
 
     if (!hash) {
       return NextResponse.json({ error: "Missing hash" }, { status: 400 });
@@ -34,25 +46,51 @@ export async function PUT(req: Request) {
 
     const updated = await prisma.commit.update({
       where: { hash },
-      data: { type, module, priority, estimatedHours, actualHours, status, evidenceUrl, releaseId: releaseId || null },
+      data: {
+        type,
+        module,
+        priority,
+        estimatedHours,
+        actualHours,
+        status,
+        evidenceUrl,
+        releaseId: releaseId || null,
+      },
     });
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: "Failed to update commit/task" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update commit/task" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const data = await req.json();
-    const { message, module, priority, estimatedHours, actualHours, status, type, evidenceUrl, releaseId } = data;
+    const {
+      message,
+      module,
+      priority,
+      estimatedHours,
+      actualHours,
+      status,
+      type,
+      evidenceUrl,
+      releaseId,
+    } = data;
 
     if (!message) {
-      return NextResponse.json({ error: "Task title/message is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Task title/message is required" },
+        { status: 400 },
+      );
     }
 
     const manualTask = await prisma.commit.create({
@@ -76,13 +114,17 @@ export async function POST(req: Request) {
     return NextResponse.json(manualTask);
   } catch (error: any) {
     console.error("Manual task creation error:", error);
-    return NextResponse.json({ error: "Failed to create manual task" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create manual task" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const url = new URL(req.url);
@@ -98,6 +140,9 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: "Failed to delete task" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete task" },
+      { status: 500 },
+    );
   }
 }

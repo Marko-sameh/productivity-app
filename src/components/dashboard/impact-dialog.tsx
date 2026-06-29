@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ const CATEGORIES = [
 ];
 
 export function ImpactDialog() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [pendingCommits, setPendingCommits] = useState<any[]>([]);
   const [currentCommit, setCurrentCommit] = useState<any>(null);
@@ -45,9 +47,46 @@ export function ImpactDialog() {
     };
 
     checkCommits();
-    const interval = setInterval(checkCommits, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open || !currentCommit) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // If user is typing in textarea, only capture Cmd+Enter or Ctrl+Enter
+      if (document.activeElement?.tagName === "TEXTAREA") {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          if (category) handleSubmit();
+        }
+        return;
+      }
+
+      // Hotkeys for categories 1-7
+      if (["1", "2", "3", "4", "5", "6", "7"].includes(e.key)) {
+        e.preventDefault();
+        const index = parseInt(e.key) - 1;
+        if (CATEGORIES[index]) {
+          setCategory(CATEGORIES[index]);
+        }
+      }
+
+      // Enter to submit
+      if (e.key === "Enter" && category) {
+        e.preventDefault();
+        handleSubmit();
+      }
+
+      // 's' to skip
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        handleSkip();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, currentCommit, category, note]);
 
   const handleSubmit = async () => {
     if (!currentCommit || !category) return;
@@ -118,9 +157,16 @@ export function ImpactDialog() {
               <SelectTrigger>
                 <SelectValue placeholder="Select impact category..." />
               </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map(c => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectContent className="bg-background border border-border/40 w-full">
+                {CATEGORIES.map((c, i) => (
+                  <SelectItem key={c} value={c}>
+                    <span className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
+                        {i + 1}
+                      </span>
+                      {c}
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -136,8 +182,12 @@ export function ImpactDialog() {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleSkip} className="text-muted-foreground hover:text-foreground">Skip</Button>
-          <Button onClick={handleSubmit} disabled={!category} className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300 font-semibold">Save Impact</Button>
+          <Button variant="ghost" onClick={handleSkip} className="text-muted-foreground hover:text-foreground">
+            Skip <kbd className="ml-2 text-[10px] bg-muted px-1.5 py-0.5 rounded border">S</kbd>
+          </Button>
+          <Button onClick={handleSubmit} disabled={!category} className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300 font-semibold">
+            Save Impact <kbd className="ml-2 text-[10px] bg-accent-foreground/20 px-1.5 py-0.5 rounded border border-accent-foreground/30 text-accent-foreground">↵</kbd>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

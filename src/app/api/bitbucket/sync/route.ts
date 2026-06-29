@@ -58,9 +58,17 @@ export async function POST(req: Request) {
         });
         const existingSet = new Set(existingRecords.map((r) => r.hash));
 
-        // Filter for new commits
+        // Filter for new commits and match author
         const newCommitsToInsert = commits
           .filter((c: any) => !existingSet.has(c.hash))
+          .filter((c: any) => {
+            const author = c.author?.user?.display_name || c.author?.raw || "";
+            return author.toLowerCase().includes("marko");
+          })
+          .filter((c: any) => {
+            const msg = c.message.trim();
+            return !msg.startsWith("Merged in") && !msg.startsWith("Merge ");
+          })
           .map((c: any) => ({
             hash: c.hash,
             repo: repoSlug,
@@ -74,6 +82,20 @@ export async function POST(req: Request) {
           const result = await prisma.commit.createMany({
             data: newCommitsToInsert,
           });
+
+          const deploymentsToInsert = newCommitsToInsert.flatMap((c: any) => [
+            { commitHash: c.hash, environment: "dev", deployedAt: c.date },
+            {
+              commitHash: c.hash,
+              environment: "production",
+              deployedAt: c.date,
+            },
+          ]);
+
+          await prisma.deployment.createMany({
+            data: deploymentsToInsert,
+          });
+
           totalInserted += result.count;
         }
       }
